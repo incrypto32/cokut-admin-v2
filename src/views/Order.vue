@@ -1,7 +1,7 @@
 <template>
   <v-data-table
     :headers="headers"
-    :items="stores"
+    :items="ordersList"
     sort-by="calories"
     :loading="loading"
     :search="search"
@@ -12,8 +12,9 @@
   >
     <template v-slot:top>
       <v-toolbar flat>
-        <v-toolbar-title>Restaurants</v-toolbar-title>
+        <v-toolbar-title>Orders</v-toolbar-title>
         <v-divider class="mx-4" inset vertical></v-divider>
+        <v-spacer></v-spacer>
         <v-text-field
           v-model="search"
           append-icon="mdi-magnify"
@@ -21,13 +22,6 @@
           single-line
           hide-details
         ></v-text-field>
-        <v-spacer></v-spacer>
-        <new-restaurant-dialog
-          v-bind:dialog="dialog"
-          :close="close"
-          v-bind:storeForm="defaultItem"
-          :callback="initialize"
-        />
 
         <v-dialog v-model="dialogDelete" max-width="500px">
           <v-card>
@@ -57,52 +51,43 @@
       </v-toolbar>
     </template>
 
-    <template v-slot:[`item.image`]="{ item }">
-      <v-img
-        :lazy-src="`${staticUrl}/restaurants/${item.id}`"
-        height="100"
-        width="100" 
-        contain
-        :hi="item.name"
-        :src="`${staticUrl}/restaurants/${item.id}.png`"
-      ></v-img>
+    <template v-slot:[`item.user`]="{ item }">
+      <v-col class="pa-0 py-3" align-self="start">
+        <span class="d-block">{{ `Name  : ${item.user.name}` }}</span>
+        <span class="d-block"> {{ `Email : ${item.user.email}` }}</span>
+        <span class="d-block">{{ `Phone : ${item.user.phone}` }}</span>
+      </v-col>
     </template>
 
-    <template v-slot:[`item.action`]="{ item }">
-      <v-btn
-        :color="item.closed ? 'success' : 'error'"
-        min-width="100px"
-        @click="changeStatus(item.id, !item.closed)"
-        >{{ item.closed ? "open" : "close" }}</v-btn
-      >
+    <template v-slot:[`item.items`]="{ item }">
+      {{ itemSummary(item) }}
     </template>
 
-    <template v-slot:[`item.locationUrl`]="{ item }">
-      <v-btn color="green" :href="item.locationUrl" rounded>
+    <template v-slot:[`item.total`]="{ item }">
+      Cart Total : {{item.price}} <br>
+      Delivery Charge : {{item.deliveryCharge}} <br>
+      Grand Total : {{item.total}} <br>
+    </template>
+
+    <template v-slot:[`item.go`]="{ item }">
+    <v-btn color="green" :href="`https://www.google.com/maps/search/?api=1&query=${item.address.place.latitude},${item.address.place.longitude}`" rounded>
         <span class="white--text"> GO</span>
-      </v-btn>
+    </v-btn>
     </template>
+
+   
 
     <template v-slot:[`item.actions`]="{ item }">
       <div class="px-4">
         <v-row>
-          <!-- <new-restaurant-dialog
-            v-bind:dialog="dialog"
-            :close="close"
-            v-bind:storeForm="editedItem"
-            :callback="initialize"
-          >
-            <v-icon small @click="editItem(item)"> mdi-pencil </v-icon>
-          </new-restaurant-dialog> -->
-
-          <v-icon small @click="deleteItem(item)"> mdi-delete </v-icon>
-          <v-icon small @click="navigate(item)"> mdi-hamburger </v-icon>
+          <!-- <v-icon small @click="deleteItem(item)"> mdi-delete </v-icon> -->
+          <a :href="`https://wa.me/${item.user.phone.substring(1)}?text=Thank%20you%20for%20ordering%20from%20Cokut`"><v-icon small > mdi-chat</v-icon></a>
         </v-row>
       </div>
     </template>
 
     <template v-slot:no-data>
-      <v-btn color="primary" @click="initialize"> Retry </v-btn>
+  a    <v-btn color="primary" @click="initialize"> Retry </v-btn>
     </template>
   </v-data-table>
 </template>
@@ -111,8 +96,8 @@
 
 <script lang="ts">
 import NewRestaurantDialog from "@/components/dialogs/NewRestaurantDialog.vue";
-import { Restaurant } from "@/ts/models/models";
-import { ApiHelper, StoreHelper } from "@/ts/services/api";
+import { Order, Restaurant } from "@/ts/models/models";
+import { ApiHelper, OrderHelper, StoreHelper } from "@/ts/services/api";
 
 import { Component, Vue, Watch } from "vue-property-decorator";
 import { Store } from "vuex";
@@ -122,7 +107,7 @@ import { Store } from "vuex";
     NewRestaurantDialog,
   },
 })
-export default class Stores extends Vue {
+export default class Orders extends Vue {
   search = "";
   loading = false;
   deleteLoading = false;
@@ -131,44 +116,23 @@ export default class Stores extends Vue {
   dialogDelete = false;
   staticUrl = ApiHelper.staticUrl;
   headers: object[] = [
-    { text: "Image", value: "image" },
-    { text: "Name", value: "name" },
-    { text: "Type", value: "type" },
-    { text: "Address", value: "address" },
-    { text: "Location", value: "locationUrl" },
-    { text: "Latitude", value: "location.latitude" },
-    { text: "Longitude", value: "location.longitude" },
-    { text: "Close/Open", value: "action" },
+    { text: "Restaurant", value: "restaurant.name" },
+    { text: "User", value: "user" },
+    { text: "Items", value: "items" },
+    { text: "Status", value: "status" },
+     { text: "GO", value: "go" },
+  
+
+    { text: "Total", value: "total" },
     { text: "Actions", value: "actions", sortable: false },
   ];
-  stores: Array<Restaurant> = [];
+
+  ordersList: Array<Order> = [];
   editedIndex = -1;
 
-  editedItem: Restaurant = {
-    id: "",
-    phone: "",
-    email: "",
-    logo: "",
-    name: "",
-    type: "",
-    address: "",
-    locationUrl: "",
-    location: {},
-    closed: false,
-  };
+  editedItem: any = {};
 
-  defaultItem: Restaurant = {
-    id: "",
-    phone: "",
-    email: "",
-    logo: "",
-    name: "",
-    type: "regular",
-    address: "",
-    locationUrl: "",
-    location: {},
-    closed: false,
-  };
+  defaultItem: any = {};
 
   created() {
     this.initialize();
@@ -177,25 +141,28 @@ export default class Stores extends Vue {
   get formTitle(): string {
     return this.editedIndex === -1 ? "New Item" : "Edit Item";
   }
+  itemSummary(item: Order) {
+    let result = "";
+    item.summary.forEach((v) => {
+      console.log(JSON.stringify(v));
+      result += `${v.meal.name}  x  ${v.count} = ${v.price}\n`;
+    });
+    return result;
+  }
+
 
   mapsUrl(latitude: number, longitude: number): string {
     return `https://www.google.com/maps/search/?api=1&query=@${latitude},${longitude}`;
-  }
-  navigate(item: Restaurant) {
-    this.$router.push({
-      name: "meals",
-      params: { rid: item.id, name: item.name },
-    });
   }
 
   async initialize() {
     this.loading = true;
     try {
       console.log("____________________");
-      this.stores = await StoreHelper.getStores();
+      this.ordersList = await OrderHelper.getOrders();
     } catch (error) {
       console.log(error);
-      this.stores = [];
+      this.ordersList = [];
     }
     this.editedItem = this.defaultItem;
     this.loading = false;
@@ -203,7 +170,7 @@ export default class Stores extends Vue {
 
   editItem(item: any) {
     console.log("hi");
-    this.editedIndex = this.stores.indexOf(item);
+    this.editedIndex = this.ordersList.indexOf(item);
     this.editedItem = Object.assign({}, item);
     this.dialog = true;
   }
@@ -211,13 +178,13 @@ export default class Stores extends Vue {
   deleteItem(item: any) {
     this.deleteLoading = false;
     this.deleteError = false;
-    this.editedIndex = this.stores.indexOf(item);
+    this.editedIndex = this.ordersList.indexOf(item);
     this.editedItem = Object.assign({}, item);
     this.dialogDelete = true;
   }
   async changeStatus(id: string, val: boolean) {
     try {
-      await StoreHelper.changeStoreStatus(id, val);
+      //   await StoreHelper.changeordersListtatus(id, val);
       this.initialize();
     } catch (error) {
       console.log(error);
@@ -225,11 +192,11 @@ export default class Stores extends Vue {
   }
 
   async deleteItemConfirm() {
-    const item = this.stores[this.editedIndex];
+    const item = this.ordersList[this.editedIndex];
     this.deleteLoading = true;
 
     try {
-      await StoreHelper.deleteStore(item.id);
+      // await StoreHelper.deleteStore(item.id);
     } catch (error) {
       console.log(error);
     }
@@ -256,9 +223,9 @@ export default class Stores extends Vue {
 
   save() {
     if (this.editedIndex > -1) {
-      Object.assign(this.stores[this.editedIndex], this.editedItem);
+      Object.assign(this.ordersList[this.editedIndex], this.editedItem);
     } else {
-      this.stores.push(this.editedItem);
+      this.ordersList.push(this.editedItem);
     }
     this.close();
   }

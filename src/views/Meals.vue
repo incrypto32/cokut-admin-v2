@@ -1,31 +1,29 @@
 <template>
   <v-data-table
     :headers="headers"
-    :items="stores"
+    :items="meals"
     sort-by="calories"
     :loading="loading"
-    :search="search"
-    disable-pagination
-    hide-default-footer
     loading-text="Loading .. Please wait"
+     :search="search"
     class="elevation-1"
   >
     <template v-slot:top>
       <v-toolbar flat>
-        <v-toolbar-title>Restaurants</v-toolbar-title>
+        <v-toolbar-title>{{title}}</v-toolbar-title>
         <v-divider class="mx-4" inset vertical></v-divider>
-        <v-text-field
-          v-model="search"
-          append-icon="mdi-magnify"
-          label="Search"
-          single-line
-          hide-details
-        ></v-text-field>
+          <v-text-field
+        v-model="search"
+        append-icon="mdi-magnify"
+        label="Search"
+        single-line
+        hide-details
+      ></v-text-field>
         <v-spacer></v-spacer>
         <new-restaurant-dialog
           v-bind:dialog="dialog"
           :close="close"
-          v-bind:storeForm="defaultItem"
+         v-bind:mealForm="defaultItem"
           :callback="initialize"
         />
 
@@ -60,27 +58,21 @@
     <template v-slot:[`item.image`]="{ item }">
       <v-img
         :lazy-src="`${staticUrl}/restaurants/${item.id}`"
-        height="100"
-        width="100" 
-        contain
+        max-height="100"
+        max-width="100"
         :hi="item.name"
         :src="`${staticUrl}/restaurants/${item.id}.png`"
       ></v-img>
     </template>
 
     <template v-slot:[`item.action`]="{ item }">
-      <v-btn
-        :color="item.closed ? 'success' : 'error'"
-        min-width="100px"
-        @click="changeStatus(item.id, !item.closed)"
-        >{{ item.closed ? "open" : "close" }}</v-btn
-      >
+      <v-btn :color="item.closed ? 'success' : 'error'" min-width="100px" @click="changeStatus(item.id,!item.closed)">{{
+        item.closed ? "open" : "close"
+      }}</v-btn>
     </template>
 
     <template v-slot:[`item.locationUrl`]="{ item }">
-      <v-btn color="green" :href="item.locationUrl" rounded>
-        <span class="white--text"> GO</span>
-      </v-btn>
+      <a :href="item.locationUrl">GO</a>
     </template>
 
     <template v-slot:[`item.actions`]="{ item }">
@@ -89,20 +81,20 @@
           <!-- <new-restaurant-dialog
             v-bind:dialog="dialog"
             :close="close"
-            v-bind:storeForm="editedItem"
+            v-bind:mealForm="editedItem"
             :callback="initialize"
           >
             <v-icon small @click="editItem(item)"> mdi-pencil </v-icon>
           </new-restaurant-dialog> -->
 
           <v-icon small @click="deleteItem(item)"> mdi-delete </v-icon>
-          <v-icon small @click="navigate(item)"> mdi-hamburger </v-icon>
         </v-row>
       </div>
     </template>
-
     <template v-slot:no-data>
-      <v-btn color="primary" @click="initialize"> Retry </v-btn>
+     <v-container pa-3></v-container>
+      <v-btn color="primary" @click="initialize"  > Retry </v-btn>
+      <v-container v-if="getError" text-center error--text >An error occured please try again</v-container>
     </template>
   </v-data-table>
 </template>
@@ -110,12 +102,13 @@
 
 
 <script lang="ts">
-import NewRestaurantDialog from "@/components/dialogs/NewRestaurantDialog.vue";
-import { Restaurant } from "@/ts/models/models";
-import { ApiHelper, StoreHelper } from "@/ts/services/api";
+import NewRestaurantDialog from "@/components/dialogs/Meals.vue";
+import { Meal, Restaurant } from "@/ts/models/models";
+import { ApiHelper, MealHelper, StoreHelper } from "@/ts/services/api";
 
 import { Component, Vue, Watch } from "vue-property-decorator";
 import { Store } from "vuex";
+
 
 @Component({
   components: {
@@ -123,51 +116,63 @@ import { Store } from "vuex";
   },
 })
 export default class Stores extends Vue {
-  search = "";
+  search=''
   loading = false;
   deleteLoading = false;
+  getError=false;
   deleteError = false;
   dialog = false;
   dialogDelete = false;
-  staticUrl = ApiHelper.staticUrl;
+  staticUrl=ApiHelper.staticUrl
+
   headers: object[] = [
-    { text: "Image", value: "image" },
-    { text: "Name", value: "name" },
-    { text: "Type", value: "type" },
-    { text: "Address", value: "address" },
-    { text: "Location", value: "locationUrl" },
-    { text: "Latitude", value: "location.latitude" },
-    { text: "Longitude", value: "location.longitude" },
-    { text: "Close/Open", value: "action" },
-    { text: "Actions", value: "actions", sortable: false },
+    {
+      text: "Name",
+      align: "start",
+      value: "name",
+    },
+
+    {
+      text: "Price",
+      align: "start",
+      value: "price",
+    },
+     {
+      text: "Striked Price",
+      align: "start",
+      value: "strikedPrice",
+    },
+
+    { text: "Special", value: "special" },
+    { text: "Spice", value: "spice" },
+    { text: "Available", value: "available"},
+    { text: "Action", value: "actions" },
   ];
-  stores: Array<Restaurant> = [];
+
+  meals: Array<Meal> = [];
   editedIndex = -1;
 
-  editedItem: Restaurant = {
-    id: "",
-    phone: "",
-    email: "",
-    logo: "",
-    name: "",
-    type: "",
-    address: "",
-    locationUrl: "",
-    location: {},
-    closed: false,
-  };
+  editedItem: Meal = {
+    id:"",
+    rid:"",
+    name:"",
+    available:false,
+    spice:false,
+    special:false,
+    price:0.0,
+    strikedPrice:0.0
+  }
 
-  defaultItem: Restaurant = {
-    id: "",
-    phone: "",
-    email: "",
-    logo: "",
-    name: "",
-    type: "regular",
-    address: "",
-    locationUrl: "",
-    location: {},
-    closed: false,
+  defaultItem: Meal = {
+    id:"",
+    rid:"",
+    name:"",
+    available:false,
+    spice:false,
+    special:false,
+    price:0.0,
+    strikedPrice:0.0
+
   };
 
   created() {
@@ -178,24 +183,24 @@ export default class Stores extends Vue {
     return this.editedIndex === -1 ? "New Item" : "Edit Item";
   }
 
+  get title(): string {
+    return `${this.$route.params.name} > Meals`
+  }
+
   mapsUrl(latitude: number, longitude: number): string {
     return `https://www.google.com/maps/search/?api=1&query=@${latitude},${longitude}`;
-  }
-  navigate(item: Restaurant) {
-    this.$router.push({
-      name: "meals",
-      params: { rid: item.id, name: item.name },
-    });
   }
 
   async initialize() {
     this.loading = true;
+    this.getError=false;
     try {
       console.log("____________________");
-      this.stores = await StoreHelper.getStores();
+      this.meals = await MealHelper.getMeals(this.$route.params.rid);
     } catch (error) {
       console.log(error);
-      this.stores = [];
+      this.meals = [];
+      this.getError=true
     }
     this.editedItem = this.defaultItem;
     this.loading = false;
@@ -203,7 +208,7 @@ export default class Stores extends Vue {
 
   editItem(item: any) {
     console.log("hi");
-    this.editedIndex = this.stores.indexOf(item);
+    this.editedIndex = this.meals.indexOf(item);
     this.editedItem = Object.assign({}, item);
     this.dialog = true;
   }
@@ -211,25 +216,27 @@ export default class Stores extends Vue {
   deleteItem(item: any) {
     this.deleteLoading = false;
     this.deleteError = false;
-    this.editedIndex = this.stores.indexOf(item);
+    this.editedIndex = this.meals.indexOf(item);
     this.editedItem = Object.assign({}, item);
     this.dialogDelete = true;
   }
   async changeStatus(id: string, val: boolean) {
     try {
       await StoreHelper.changeStoreStatus(id, val);
-      this.initialize();
+      this.initialize()
     } catch (error) {
       console.log(error);
     }
   }
 
   async deleteItemConfirm() {
-    const item = this.stores[this.editedIndex];
+    const item = this.meals[this.editedIndex];
     this.deleteLoading = true;
 
+    console.log(item.id)
+
     try {
-      await StoreHelper.deleteStore(item.id);
+      await MealHelper.deleteMeal(item.id);
     } catch (error) {
       console.log(error);
     }
@@ -256,9 +263,9 @@ export default class Stores extends Vue {
 
   save() {
     if (this.editedIndex > -1) {
-      Object.assign(this.stores[this.editedIndex], this.editedItem);
+      Object.assign(this.meals[this.editedIndex], this.editedItem);
     } else {
-      this.stores.push(this.editedItem);
+      this.meals.push(this.editedItem);
     }
     this.close();
   }
