@@ -2,7 +2,7 @@ import { Meal, Order, Restaurant } from '../models/models';
 
 export class ApiHelper {
   // http://192.168.43.64:8080
-  static uri = `http://192.168.43.64:4000`
+  static uri = `http://ec2-65-0-104-115.ap-south-1.compute.amazonaws.com/a`
   static url = `${ApiHelper.uri}/api/v1`
   static staticUrl = `${ApiHelper.uri}/files`
   static adminUrl = `${ApiHelper.uri}/admin`
@@ -215,7 +215,7 @@ export class OrderHelper {
 
     const resp: any = await ApiHelper.getData(`/orders`,true)
     console.log(JSON.stringify(resp))
-    return resp.orders
+    return resp.orders ?? []
 
   }
 

@@ -160,6 +160,7 @@ export default class Orders extends Vue {
     try {
       console.log("____________________");
       this.ordersList = await OrderHelper.getOrders();
+      
     } catch (error) {
       console.log(error);
       this.ordersList = [];
