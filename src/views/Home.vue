@@ -59,7 +59,7 @@
 
     <template v-slot:[`item.image`]="{ item }">
       <v-img
-        :lazy-src="`${staticUrl}/restaurants/${item.id}`"
+
         height="100"
         width="100" 
         contain

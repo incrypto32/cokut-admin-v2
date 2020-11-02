@@ -1,8 +1,10 @@
+import { fire } from '../firebase_helper';
 import { Meal, Order, Restaurant } from '../models/models';
 
 export class ApiHelper {
   // http://192.168.43.64:8080
-  static uri = `http://ec2-65-0-104-115.ap-south-1.compute.amazonaws.com/a`
+  static uri = `http://localhost:4000`
+  // static uri = `http://ec2-65-0-104-115.ap-south-1.compute.amazonaws.com/a`
   static url = `${ApiHelper.uri}/api/v1`
   static staticUrl = `${ApiHelper.uri}/files`
   static adminUrl = `${ApiHelper.uri}/admin`
@@ -10,8 +12,9 @@ export class ApiHelper {
   static async postData(body: any, endpoint: string, admin = true): Promise<any> {
 
     const myHeaders = new Headers();
+    const token=await fire.getToken()
 
-    myHeaders.append("Authorization", "Bearer TEST_TOKEN");
+    myHeaders.append("Authorization", `Bearer ${token}`);
     myHeaders.append("Content-Type", "application/json");
 
     body.price = parseFloat(body.price)
@@ -37,7 +40,9 @@ export class ApiHelper {
   static async sendForm(formdata: FormData, endpoint: string, admin = true): Promise<object> {
     const myHeaders = new Headers();
 
-    myHeaders.append("Authorization", "Bearer TEST_TOKEN");
+    const token=await fire.getToken()
+
+    myHeaders.append("Authorization", `Bearer ${token}`);
 
 
     const requestOptions: RequestInit = {
@@ -66,7 +71,9 @@ export class ApiHelper {
   static async getData(endpoint: string, admin = false): Promise<any> {
     const myHeaders: Headers = new Headers();
 
-    myHeaders.append("Authorization", "Bearer TEST_TOKEN");
+    const token=await fire.getToken()
+
+    myHeaders.append("Authorization", `Bearer ${token}`);
     myHeaders.append("Content-Type", "application/json");
 
     const requestOptions: RequestInit = {
@@ -93,7 +100,9 @@ export class ApiHelper {
   static async deleteData(endpoint: string, id: string, admin = true): Promise<any> {
     const myHeaders = new Headers();
 
-    myHeaders.append("Authorization", "Bearer TEST_TOKEN");
+    const token=await fire.getToken()
+
+    myHeaders.append("Authorization", `Bearer ${token}`);
 
 
     const requestOptions: RequestInit = {

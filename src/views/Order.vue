@@ -87,7 +87,7 @@
     </template>
 
     <template v-slot:no-data>
-  a    <v-btn color="primary" @click="initialize"> Retry </v-btn>
+     <v-btn color="primary" @click="initialize"> Retry </v-btn>
     </template>
   </v-data-table>
 </template>
