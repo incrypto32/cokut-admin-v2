@@ -53,9 +53,9 @@
 
     <template v-slot:[`item.user`]="{ item }">
       <v-col class="pa-0 py-3" align-self="start">
-        <span class="d-block">{{ `Name  : ${item.user.name}` }}</span>
-        <span class="d-block"> {{ `Email : ${item.user.email}` }}</span>
-        <span class="d-block">{{ `Phone : ${item.user.phone}` }}</span>
+        <span class="d-block">{{ `Name  : ${item.user.name || ''}` }}</span>
+        <span class="d-block"> {{ `Email : ${item.user.email || ''}` }}</span>
+        <span class="d-block"> Phone : {{ item.user.phone || '' }}</span>
       </v-col>
     </template>
 
@@ -81,7 +81,7 @@
       <div class="px-4">
         <v-row>
           <!-- <v-icon small @click="deleteItem(item)"> mdi-delete </v-icon> -->
-          <a :href="`https://wa.me/${item.user.phone.substring(1)}?text=Thank%20you%20for%20ordering%20from%20Cokut`"><v-icon small > mdi-chat</v-icon></a>
+          <a :href="`https://wa.me/${(item.user.phone||'').substring(1)}?text=Thank%20you%20for%20ordering%20from%20Cokut`"><v-icon small > mdi-chat</v-icon></a>
         </v-row>
       </div>
     </template>
