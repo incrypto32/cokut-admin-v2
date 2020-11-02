@@ -3,8 +3,8 @@ import { Meal, Order, Restaurant } from '../models/models';
 
 export class ApiHelper {
   // http://192.168.43.64:8080
-  static uri = `http://localhost:4000`
-  // static uri = `http://ec2-65-0-104-115.ap-south-1.compute.amazonaws.com/a`
+  // static uri = `http://localhost:4000`
+  static uri = `http://ec2-65-0-104-115.ap-south-1.compute.amazonaws.com/a`
   static url = `${ApiHelper.uri}/api/v1`
   static staticUrl = `${ApiHelper.uri}/files`
   static adminUrl = `${ApiHelper.uri}/admin`
