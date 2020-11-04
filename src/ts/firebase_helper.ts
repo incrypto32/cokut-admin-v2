@@ -20,8 +20,7 @@ export class Fire {
 
 
     auth = firebase.auth()
-
-
+    sessionPersistence=     firebase.auth.Auth.Persistence.SESSION
 
 
     async loginWithEmailAndPassword(email: string, password: string): Promise<string> {
@@ -51,3 +50,6 @@ export class Fire {
 }
 
 export const fire = new Fire()
+fire.auth.setPersistence(fire.sessionPersistence)
+
+

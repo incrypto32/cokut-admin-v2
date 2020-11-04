@@ -101,7 +101,6 @@ export class ApiHelper {
     const myHeaders = new Headers();
 
     const token=await fire.getToken()
-
     myHeaders.append("Authorization", `Bearer ${token}`);
 
 
@@ -223,19 +222,20 @@ export class OrderHelper {
   static async getOrders(): Promise<Order[]> {
 
     const resp: any = await ApiHelper.getData(`/orders`,true)
-    console.log(JSON.stringify(resp))
+ 
     return resp.orders ?? []
-
   }
 
-  static async addMeal(restaurant: FormData): Promise<void> {
+  static async changeStatus(id: string,statusCode: number): Promise<Order> {
 
 
-    const resp: any = await ApiHelper.sendForm(restaurant, "/meal")
+    const resp: any = await ApiHelper.postData({id:id,statusCode:statusCode},"/orders/status",true)
 
     if (!resp.success) {
-      throw "Failed to add restaurant"
+      throw "Failed to change status"
     }
+
+    return resp.order
 
   }
 
